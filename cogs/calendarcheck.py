@@ -38,11 +38,88 @@ class CalendarCheck(commands.Cog):
         # Check if valid URL
         try:
             resp = await CalendarCheck.get_async(self.url)
-        except ValueError as valerror:
+        except ValueError:
             return print('Kunde inte koppla upp')
+        except aiohttp.ClientPayloadError as error:
+            print("error: ClientPayloadError")
+            print(error)
+            return
+        except aiohttp.InvalidURL as error:
+            print("error: InvalidURL")
+            print(error)
+            return
+        except aiohttp.ContentDisposition as error:
+            print("error: ContentDisposition")
+            print(error)
+            return
+        except aiohttp.ClientResponseError as error:
+            print("error: ClientResponseError")
+            print(error)
+            return
+        except aiohttp.WSServerHandshakeError as error:
+            print("error: WSServerHandshakeError")
+            print(error)
+            return
+        except aiohttp.ContentTypeError as error:
+            print("error: ContentTypeError")
+            print(error)
+            return
+        except aiohttp.TooManyRedirects as error:
+            print("error: TooManyRedirects")
+            print(error)
+            return
+        except aiohttp.ClientConnectionError as error:
+            print("error: ClientConnectionError")
+            print(error)
+            return
+        except aiohttp.ClientOSError as error:
+            print("error: ClientOSError")
+            print(error)
+            return
+        except aiohttp.ClientConnectorError as error:
+            print("error: ClientConnectorError")
+            print(error)
+            return
+        except aiohttp.ClientProxyConnectionError as error:
+            print("error: ClientProxyConnectionError")
+            print(error)
+            return
+        except aiohttp.ServerConnectionError as error:
+            print("error: ServerConnectionError")
+            print(error)
+            return
+        except aiohttp.ClientSSLError as error:
+            print("error: ClientSSLError")
+            print(error)
+            return
+        except aiohttp.ClientConnectorSSLError as error:
+            print("error: ClientConnectorSSLError")
+            print(error)
+            return
+        except aiohttp.ClientConnectorCertificateError as error:
+            print("error: ClientConnectorCertificateError")
+            print(error)
+            return
+        except aiohttp.ServerDisconnectedError as error:
+            print("error: ServerDisconnectedError")
+            print(error)
+            return
+        except aiohttp.ServerTimeoutError as error:
+            print("error: ServerTimeoutError")
+            print(error)
+            return
+        except aiohttp.ServerFingerprintMismatch as error:
+            print("error: ServerFingerprintMismatch")
+            print(error)
+            return
+        except aiohttp.ClientError as error:
+            print("error: ClientError")
+            print(error)
+            return
         except Exception as error:
             print('Något fel när kalender skulle hämtas:')
             print(error)
+            return
 
         new_calendar = Calendar.from_ical(resp)
 
