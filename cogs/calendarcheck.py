@@ -1,7 +1,8 @@
 from icalendar import Calendar
 from discord.ext import commands, tasks
 from pathlib import Path
-import discord, aiohttp, datetime
+from datetime import datetime
+import discord, aiohttp
 
 
 
@@ -31,9 +32,14 @@ class CalendarCheck(commands.Cog):
     """
     @tasks.loop(hours=3)
     async def look_for_updates(self, bot, *args):
+        print(f'{datetime.now()}: ------------------------------------------------')
+        print(f'{datetime.now()}: Looking for updates.')
         self.bot = bot
         self.url = 'https://schema.mau.se/setup/jsp/SchemaICAL.ics?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h'
+        # Riktiga kanalen
         self.channel = bot.get_channel(881799174763462657)
+        # Testkanelen
+        # self.channel = bot.get_channel(882207091887046676)
 
         # Check if valid URL
         try:
@@ -41,12 +47,12 @@ class CalendarCheck(commands.Cog):
         except ValueError:
             return print('Kunde inte koppla upp')
         except aiohttp.ClientError as error:
-            print("error: ClientError")
-            print(error)
+            print(f'{datetime.now()}: error: ClientError')
+            print(f'{datetime.now()}: {error}')
             return
         except Exception as error:
-            print('Något fel när kalender skulle hämtas:')
-            print(error)
+            print(f'{datetime.now()}: Något fel när kalender skulle hämtas:')
+            print(f'{datetime.now()}: {error}')
             return
 
         new_calendar = Calendar.from_ical(resp)
@@ -54,7 +60,7 @@ class CalendarCheck(commands.Cog):
         if not Path('calendar.ics').exists():
             with open('calendar.ics', 'wb') as calendar_file:
                 calendar_file.write(new_calendar.to_ical())
-                print('calendar sparad till disk')
+                print(f'{datetime.now()}: calendar sparad till disk')
 
 
         with open('calendar.ics', 'r') as calendar_file:
@@ -75,23 +81,29 @@ class CalendarCheck(commands.Cog):
 
                 uid = event.get('UID')
                 event_summary = event.get('SUMMARY')
+                new_DTSTART = event.get('DTSTART')
+                human_start = datetime.strptime(str(new_DTSTART.dt), '%Y-%m-%d %H:%M:%S+00:00')
 
                 try:
                     old_DTSTART = old_calendar_dict[uid].get('DTSTART')
                 except KeyError:
-                    embed.add_field(name="Ny händelse", value=event_summary, inline=False)
+                    print(f'{datetime.now()}: Ny händelse hittad.')
+                    embed.add_field(name=f'Ny händelse ({human_start})', value=event_summary, inline=False)
                     continue
 
-                new_DTSTART = event.get('DTSTART')
-                human_start = datetime.datetime.strptime(str(new_DTSTART.dt), '%Y-%m-%d %H:%M:%S+00:00')
 
                 if new_DTSTART.dt != old_DTSTART.dt:
+                    print(f'{datetime.now()}: Ny starttid hittad.')
                     embed.add_field(name=f"Ny starttid: {human_start}", value=event_summary, inline=False)
 
         if len(embed.fields) > 0:
             await self.channel.send(embed=embed)
+            print(f'{datetime.now()}: Meddelat på discord.')
             with open('calendar.ics', 'wb') as calendar_file:
                 calendar_file.write(new_calendar.to_ical())
+                print(f'{datetime.now()}: Ny ical filen är sparad.')
+        else:
+            print(f'{datetime.now()}: Inget nytt.')
 
 
 
