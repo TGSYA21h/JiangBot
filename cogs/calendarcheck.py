@@ -30,7 +30,7 @@ class CalendarCheck(commands.Cog):
     Function that runs every 15 minutes, responsible for sending
     updates to the users with new updates.
     """
-    @tasks.loop(hours=3)
+    @tasks.loop(minutes=15)
     async def look_for_updates(self, bot, *args):
         print(f'{datetime.now()}: ------------------------------------------------')
         print(f'{datetime.now()}: Looking for updates.')
@@ -45,7 +45,7 @@ class CalendarCheck(commands.Cog):
         try:
             resp = await CalendarCheck.get_async(self.url)
         except ValueError:
-            return print('Kunde inte koppla upp')
+            return print(f'{datetime.now()}: Kunde inte koppla upp')
         except aiohttp.ClientError as error:
             print(f'{datetime.now()}: error: ClientError')
             print(f'{datetime.now()}: {error}')
