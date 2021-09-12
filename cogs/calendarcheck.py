@@ -1,7 +1,7 @@
 from icalendar import Calendar
 from discord.ext import commands, tasks
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import discord, aiohttp, re
 
 
@@ -40,14 +40,25 @@ class CalendarCheck(commands.Cog):
         with open('calendar.ics', 'r', encoding='utf8') as calendar_file:
             old_calendar = Calendar.from_ical(calendar_file.read())
 
+        now = datetime.now()
+        last_sunday = []
+        for weekday in range(7):
+            if datetime(now.year, 3, 31-weekday).weekday() == 6:
+                last_sunday.append(datetime(now.year, 3, 31-weekday))
+
+        for weekday in range(7):
+            if datetime(now.year, 10, 31-weekday).weekday() == 6:
+                last_sunday.append(datetime(now.year, 10, 31-weekday))
+
+        daylight_saving = 2 if last_sunday[0] < now < last_sunday[1] else 1
         time_limit = datetime.strptime(str(datetime.now())[:10], "%Y-%m-%d")
         event_data = []
         first_date = None
 
         for event in old_calendar.walk():
             if event.name == 'VEVENT':
-                f_start = event.get('DTSTART').dt
-                f_end = event.get('DTEND').dt
+                f_start = event.get('DTSTART').dt + timedelta(hours=daylight_saving)
+                f_end = event.get('DTEND').dt + timedelta(hours=daylight_saving)
 
                 if time_limit.timestamp() > f_start.timestamp():
                     continue
@@ -88,26 +99,36 @@ class CalendarCheck(commands.Cog):
                 if number_of_events <= 0:
                     number_of_events = number_of_events - 1
                     if first_date != str(f_start)[:10]:
+                        number_of_events = number_of_events + 1
                         break
 
         if len(event_data) > 0:
             prev_date = None
             embed = None
+            saved = None
             if number_of_events < 0:
                 number_of_events = number_of_events * -1
+
 
             for event in event_data[:number_of_events]:
                 if prev_date is None:
                     prev_date = datetime.strptime(event["date"], "%Y-%m-%d")
                     embed=discord.Embed(title=f"Kommande händelser {event['date']}", url="https://schema.mau.se/setup/jsp/Schema.jsp?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h", color=0xe5032d)
                     embed.set_thumbnail(url="https://mau.se/siteassets/mau_sv_logotyp.svg")
-
-                embed.add_field(name=f'{event["moment"]}', value=f'{event["starttime"]}-{event["endtime"]} ({event["duration"]})\n{event["subject"]} - Sal: {event["location"]}', inline=False)
+                    if saved is not None:
+                        embed.add_field(name=saved["name"], value=saved["value"], inline=False)
+                        saved = None
 
                 if prev_date != datetime.strptime(event["date"], "%Y-%m-%d"):
                     await ctx.author.send(embed=embed)
                     prev_date = None
                     embed = None
+                    saved = {
+                        'name': event['moment'],
+                        'value': f'{event["starttime"]}-{event["endtime"]} ({event["duration"]})\n{event["subject"]} - Sal: {event["location"]}'
+                    }
+                else:
+                    embed.add_field(name=f'{event["moment"]}', value=f'{event["starttime"]}-{event["endtime"]} ({event["duration"]})\n{event["subject"]} - Sal: {event["location"]}', inline=False)
 
             if embed is not None:
                 await ctx.author.send(embed=embed)
