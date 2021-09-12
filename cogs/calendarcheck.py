@@ -33,15 +33,16 @@ class CalendarCheck(commands.Cog):
             try:
                 number_of_events = int(args[0])
             except Exception as error:
-                number_of_events = 4
+                number_of_events = 0
         else:
-            number_of_events = 4
+            number_of_events = 0
 
         with open('calendar.ics', 'r', encoding='utf8') as calendar_file:
             old_calendar = Calendar.from_ical(calendar_file.read())
 
         time_limit = datetime.strptime(str(datetime.now())[:10], "%Y-%m-%d")
         event_data = []
+        first_date = None
 
         for event in old_calendar.walk():
             if event.name == 'VEVENT':
@@ -50,8 +51,10 @@ class CalendarCheck(commands.Cog):
 
                 if time_limit.timestamp() > f_start.timestamp():
                     continue
+                elif first_date is None:
+                    first_date = str(f_start)[:10]
 
-                if len(event_data) >= number_of_events:
+                if number_of_events > 0 and len(event_data) >= number_of_events:
                     break
 
                 start = str(f_start)[11:16]
@@ -82,8 +85,16 @@ class CalendarCheck(commands.Cog):
                         "moment":    moment
                     })
 
+                if number_of_events <= 0:
+                    number_of_events = number_of_events - 1
+                    if first_date != str(f_start)[:10]:
+                        break
+
         if len(event_data) > 0:
             prev_date = None
+            embed = None
+            if number_of_events < 0:
+                number_of_events = number_of_events * -1
 
             for event in event_data[:number_of_events]:
                 if prev_date is None:
