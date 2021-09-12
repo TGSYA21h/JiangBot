@@ -28,14 +28,13 @@ class CalendarCheck(commands.Cog):
 
     @commands.command()
     async def schema(self, ctx, *args):
-
         if len(args):
             try:
-                number_of_events = int(args[0])
+                number_of_days = int(args[0])
             except Exception as error:
-                number_of_events = 0
+                number_of_days = 1
         else:
-            number_of_events = 0
+            number_of_days = 1
 
         with open('calendar.ics', 'r', encoding='utf8') as calendar_file:
             old_calendar = Calendar.from_ical(calendar_file.read())
@@ -63,9 +62,11 @@ class CalendarCheck(commands.Cog):
                 if time_limit.timestamp() > f_start.timestamp():
                     continue
                 elif first_date is None:
-                    first_date = str(f_start)[:10]
-
-                if number_of_events > 0 and len(event_data) >= number_of_events:
+                    first_date = f_start
+                    last_date = datetime(f_start.year, f_start.month, (f_start + timedelta(days=number_of_days)).day)
+                    while last_date.weekday() >= 5:
+                        last_date = last_date + timedelta(days=1)
+                elif f_start.timestamp() > last_date.timestamp():
                     break
 
                 start = str(f_start)[11:16]
@@ -85,32 +86,22 @@ class CalendarCheck(commands.Cog):
                 else:
                     location = location
 
-                if f_start.date != f_end.date:
-                    event_data.append({
-                        "date":      str(f_start)[:10],
-                        "starttime": start,
-                        "endtime":   end,
-                        "duration":  f'{duration[:-3]}h{duration[-3:]}m',
-                        "subject":   subject,
-                        "location":  location,
-                        "moment":    moment
-                    })
-
-                if number_of_events <= 0:
-                    number_of_events = number_of_events - 1
-                    if first_date != str(f_start)[:10]:
-                        number_of_events = number_of_events + 1
-                        break
+                event_data.append({
+                    "date":      str(f_start)[:10],
+                    "starttime": start,
+                    "endtime":   end,
+                    "duration":  f'{duration[:-3]}h{duration[-3:]}m',
+                    "subject":   subject,
+                    "location":  location,
+                    "moment":    moment
+                })
 
         if len(event_data) > 0:
             prev_date = None
             embed = None
             saved = None
-            if number_of_events < 0:
-                number_of_events = number_of_events * -1
 
-
-            for event in event_data[:number_of_events]:
+            for event in event_data:
                 if prev_date is None:
                     prev_date = datetime.strptime(event["date"], "%Y-%m-%d")
                     embed=discord.Embed(title=f"Kommande händelser {event['date']}", url="https://schema.mau.se/setup/jsp/Schema.jsp?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h", color=0xe5032d)
@@ -129,6 +120,11 @@ class CalendarCheck(commands.Cog):
                     }
                 else:
                     embed.add_field(name=f'{event["moment"]}', value=f'{event["starttime"]}-{event["endtime"]} ({event["duration"]})\n{event["subject"]} - Sal: {event["location"]}', inline=False)
+
+            if saved is not None:
+                embed=discord.Embed(title=f"Kommande händelser {event['date']}", url="https://schema.mau.se/setup/jsp/Schema.jsp?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h", color=0xe5032d)
+                embed.set_thumbnail(url="https://mau.se/siteassets/mau_sv_logotyp.svg")
+                embed.add_field(name=saved["name"], value=saved["value"], inline=False)
 
             if embed is not None:
                 await ctx.author.send(embed=embed)
