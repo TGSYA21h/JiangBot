@@ -1,7 +1,7 @@
 from icalendar import Calendar
 from discord.ext import commands, tasks
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 import discord, aiohttp, re
 
 
@@ -40,16 +40,16 @@ class CalendarCheck(commands.Cog):
         with open('calendar.ics', 'r', encoding='utf8') as calendar_file:
             old_calendar = Calendar.from_ical(calendar_file.read())
 
-        embed=discord.Embed(title="Kommande händelser", url="https://schema.mau.se/setup/jsp/Schema.jsp?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h", color=0xe5032d)
-        embed.set_thumbnail(url="https://mau.se/siteassets/mau_sv_logotyp.svg")
-
-        time_limit = datetime.strptime(str(datetime.now())[:10], "%Y-%m-%d") + timedelta(days=2)
+        time_limit = datetime.strptime(str(datetime.now())[:10], "%Y-%m-%d")
         event_data = []
 
         for event in old_calendar.walk():
             if event.name == 'VEVENT':
                 f_start = event.get('DTSTART').dt
                 f_end = event.get('DTEND').dt
+
+                if time_limit.timestamp() > f_start.timestamp():
+                    continue
 
                 if len(event_data) >= number_of_events:
                     break
@@ -83,9 +83,23 @@ class CalendarCheck(commands.Cog):
                     })
 
         if len(event_data) > 0:
+            prev_date = None
+
             for event in event_data[:number_of_events]:
-                embed.add_field(name=f'[{event["date"]}] {event["moment"]}', value=f'{event["starttime"]}-{event["endtime"]} ({event["duration"]})\n{event["subject"]} - Sal: {event["location"]}', inline=False)
-            await ctx.author.send(embed=embed)
+                if prev_date is None:
+                    prev_date = datetime.strptime(event["date"], "%Y-%m-%d")
+                    embed=discord.Embed(title=f"Kommande händelser {event['date']}", url="https://schema.mau.se/setup/jsp/Schema.jsp?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h", color=0xe5032d)
+                    embed.set_thumbnail(url="https://mau.se/siteassets/mau_sv_logotyp.svg")
+
+                embed.add_field(name=f'{event["moment"]}', value=f'{event["starttime"]}-{event["endtime"]} ({event["duration"]})\n{event["subject"]} - Sal: {event["location"]}', inline=False)
+
+                if prev_date != datetime.strptime(event["date"], "%Y-%m-%d"):
+                    await ctx.author.send(embed=embed)
+                    prev_date = None
+                    embed = None
+
+            if embed is not None:
+                await ctx.author.send(embed=embed)
         else:
             await ctx.author.send("Det finns inget mer på schemat. Pinga en admin om detta är fel.")
 
