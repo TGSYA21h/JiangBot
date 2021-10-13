@@ -63,7 +63,8 @@ class CalendarCheck(commands.Cog):
                     continue
                 elif first_date is None:
                     first_date = f_start
-                    last_date = datetime(f_start.year, f_start.month, (f_start + timedelta(days=number_of_days)).day)
+                    temp_date = f_start + timedelta(days=number_of_days)
+                    last_date = datetime(temp_date.year, temp_date.month, temp_date.day)
                     while last_date.weekday() >= 5:
                         last_date = last_date + timedelta(days=1)
                 elif f_start.timestamp() > last_date.timestamp():
@@ -145,7 +146,7 @@ class CalendarCheck(commands.Cog):
         self.url = 'https://schema.mau.se/setup/jsp/SchemaICAL.ics?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h'
         # Riktiga kanalen
         self.channel = bot.get_channel(881799174763462657)
-        # Testkanelen
+        # Testkanelen'
         # self.channel = bot.get_channel(882207091887046676)
 
         # Check if valid URL
