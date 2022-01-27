@@ -220,9 +220,9 @@ class CalendarCheck(commands.Cog):
                 await self.channel.send(embed=embed)
             print(f'{datetime.now()}: Meddelat på discord.')
 
-            # with open('calendar.ics', 'wb') as calendar_file:
-            #     calendar_file.write(new_calendar.to_ical())
-            #     print(f'{datetime.now()}: Ny ical filen är sparad.')
+            with open('calendar.ics', 'wb') as calendar_file:
+                calendar_file.write(new_calendar.to_ical())
+                print(f'{datetime.now()}: Ny ical filen är sparad.')
         else:
             print(f'{datetime.now()}: Inget nytt.')
 
