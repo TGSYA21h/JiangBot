@@ -147,7 +147,7 @@ class CalendarCheck(commands.Cog):
         # Riktiga kanalen
         self.channel = bot.get_channel(881799174763462657)
         # Testkanelen'
-        # self.channel = bot.get_channel(882207091887046676)
+        # self.channel = bot.get_channel()
 
         # Check if valid URL
         try:
@@ -181,12 +181,15 @@ class CalendarCheck(commands.Cog):
                 old_calendar_dict[event.get('UID')] = event
 
 
-        embed=discord.Embed(title="Schemat har ändrats", url="https://schema.mau.se/setup/jsp/Schema.jsp?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h", description="Här är de senaste ändringarna i schemat.", color=0xe5032d)
-        embed.set_thumbnail(url="https://mau.se/siteassets/mau_sv_logotyp.svg")
+        embeds = []
+        embed = None
 
         for event in new_calendar.walk():
-            if event.name == 'VEVENT':
+            if embed is None:
+                embed=discord.Embed(title="Schemat har ändrats", url="https://schema.mau.se/setup/jsp/Schema.jsp?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h", description="Här är de senaste ändringarna i schemat.", color=0xe5032d)
+                embed.set_thumbnail(url="https://mau.se/siteassets/mau_sv_logotyp.svg")
 
+            if event.name == 'VEVENT':
                 uid = event.get('UID')
                 # event_summary = event.get('SUMMARY')
                 event_summary = re.search('(?<=Moment: ).*(?= ? Program)', event.get('SUMMARY'))[0]
@@ -195,22 +198,31 @@ class CalendarCheck(commands.Cog):
 
                 try:
                     old_DTSTART = old_calendar_dict[uid].get('DTSTART')
+
+                    if new_DTSTART.dt != old_DTSTART.dt:
+                        print(f'{datetime.now()}: Ny starttid hittad.')
+                        embed.add_field(name=f"Ny starttid: {human_start}", value=event_summary, inline=False)
                 except KeyError:
                     print(f'{datetime.now()}: Ny händelse hittad.')
                     embed.add_field(name=f'Ny händelse ({human_start})', value=event_summary, inline=False)
-                    continue
 
 
-                if new_DTSTART.dt != old_DTSTART.dt:
-                    print(f'{datetime.now()}: Ny starttid hittad.')
-                    embed.add_field(name=f"Ny starttid: {human_start}", value=event_summary, inline=False)
+            if embed is not None and len(embed.fields) == 25:
+                embeds.append(embed)
+                embed = None
 
-        if len(embed.fields) > 0:
-            await self.channel.send(embed=embed)
+        if embed is not None:
+            embeds.append(embed)
+
+
+        if len(embeds) > 0:
+            for embed in embeds:
+                await self.channel.send(embed=embed)
             print(f'{datetime.now()}: Meddelat på discord.')
-            with open('calendar.ics', 'wb') as calendar_file:
-                calendar_file.write(new_calendar.to_ical())
-                print(f'{datetime.now()}: Ny ical filen är sparad.')
+
+            # with open('calendar.ics', 'wb') as calendar_file:
+            #     calendar_file.write(new_calendar.to_ical())
+            #     print(f'{datetime.now()}: Ny ical filen är sparad.')
         else:
             print(f'{datetime.now()}: Inget nytt.')
 
