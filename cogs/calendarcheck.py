@@ -145,9 +145,9 @@ class CalendarCheck(commands.Cog):
         self.bot = bot
         self.url = 'https://schema.mau.se/setup/jsp/SchemaICAL.ics?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h'
         # Riktiga kanalen
-        self.channel = bot.get_channel(881799174763462657)
+        # self.channel = bot.get_channel(881799174763462657)
         # Testkanelen'
-        # self.channel = bot.get_channel()
+        self.channel = bot.get_channel(882207091887046676)
 
         # Check if valid URL
         try:
@@ -185,26 +185,34 @@ class CalendarCheck(commands.Cog):
         embed = None
 
         for event in new_calendar.walk():
-            if embed is None:
-                embed=discord.Embed(title="Schemat har ändrats", url="https://schema.mau.se/setup/jsp/Schema.jsp?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h", description="Här är de senaste ändringarna i schemat.", color=0xe5032d)
-                embed.set_thumbnail(url="https://mau.se/siteassets/mau_sv_logotyp.svg")
+            name = None
 
             if event.name == 'VEVENT':
                 uid = event.get('UID')
-                # event_summary = event.get('SUMMARY')
-                event_summary = re.search('(?<=Moment: ).*(?= ? Program)', event.get('SUMMARY'))[0]
                 new_DTSTART = event.get('DTSTART')
                 human_start = datetime.strptime(str(new_DTSTART.dt), '%Y-%m-%d %H:%M:%S+00:00')
 
-                try:
-                    old_DTSTART = old_calendar_dict[uid].get('DTSTART')
+                # Inte ta med saker +30 dagar framåt
+                if new_DTSTART.dt.timestamp() < (datetime.now() + timedelta(days=30)).timestamp():
+                    try:
+                        old_DTSTART = old_calendar_dict[uid].get('DTSTART')
 
-                    if new_DTSTART.dt != old_DTSTART.dt:
-                        print(f'{datetime.now()}: Ny starttid hittad.')
-                        embed.add_field(name=f"Ny starttid: {human_start}", value=event_summary, inline=False)
-                except KeyError:
-                    print(f'{datetime.now()}: Ny händelse hittad.')
-                    embed.add_field(name=f'Ny händelse ({human_start})', value=event_summary, inline=False)
+                        if new_DTSTART.dt != old_DTSTART.dt:
+                            print(f'{datetime.now()}: Ny starttid hittad.')
+                            name = f"Ny starttid: {human_start}"
+                    except KeyError:
+                        print(f'{datetime.now()}: Ny händelse hittad.')
+                        name = f"Ny händelse ({human_start})"
+
+
+            if name is not None:
+                if embed is None:
+                    embed=discord.Embed(title="Schemat har ändrats", url="https://schema.mau.se/setup/jsp/Schema.jsp?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h", description="Här är de senaste ändringarna i schemat.", color=0xe5032d)
+                    embed.set_thumbnail(url="https://mau.se/siteassets/mau_sv_logotyp.svg")
+
+                course = re.search('(?<=Kurs.grp: ).+?(?=, \d\d?\.?\d hp)', event.get('SUMMARY'))[0]
+                summary = re.search('(?<=Moment: ).*(?= ? Program)', event.get('SUMMARY'))[0]
+                embed.add_field(name=name, value=f'{course}:\n{summary}', inline=False)
 
 
             if embed is not None and len(embed.fields) == 25:
@@ -213,6 +221,7 @@ class CalendarCheck(commands.Cog):
 
         if embed is not None:
             embeds.append(embed)
+
 
 
         if len(embeds) > 0:
