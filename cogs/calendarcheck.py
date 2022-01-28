@@ -145,9 +145,9 @@ class CalendarCheck(commands.Cog):
         self.bot = bot
         self.url = 'https://schema.mau.se/setup/jsp/SchemaICAL.ics?startDatum=idag&intervallTyp=m&intervallAntal=6&sprak=SV&sokMedAND=true&forklaringar=true&resurser=p.TGSYA21h'
         # Riktiga kanalen
-        # self.channel = bot.get_channel(881799174763462657)
+        self.channel = bot.get_channel(881799174763462657)
         # Testkanelen'
-        self.channel = bot.get_channel(882207091887046676)
+        #self.channel = bot.get_channel(882207091887046676)
 
         # Check if valid URL
         try:
